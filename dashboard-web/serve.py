@@ -72,10 +72,18 @@ def collect_pipeline_count() -> int:
 
 
 def extract_apply_url(report_md: str) -> str | None:
-    m = re.search(r"\*\*Apply:\*\*\s*(\S+)", report_md)
+    m = re.search(r"\*\*Apply:\*\*\s*(https?://\S+)", report_md)
     if m:
         return m.group(1)
-    m = re.search(r"\*\*URL:\*\*\s*(\S+)", report_md)
+    m = re.search(r"\*\*URL:\*\*\s*(https?://\S+)", report_md)
+    if m:
+        return m.group(1)
+    return None
+
+
+def extract_pdf_path(report_md: str) -> str | None:
+    """Pull the **PDF:** line from a report header. Returns relative output/ path."""
+    m = re.search(r"\*\*PDF:\*\*\s*(output/[^\s]+\.pdf)", report_md)
     if m:
         return m.group(1)
     return None
@@ -84,20 +92,29 @@ def extract_apply_url(report_md: str) -> str | None:
 def get_data() -> dict:
     apps = parse_apps()
     reports = collect_reports()
-    # attach apply URL per row by looking up report
+    pdfs = collect_pdfs()
+    # attach apply URL + PDF filename per row by looking up report
     for r in apps:
         report_link = r.get("Report") or ""
         m = re.search(r"\(reports/([^)]+)\)", report_link)
         if m and m.group(1) in reports:
-            r["__apply_url"] = extract_apply_url(reports[m.group(1)])
+            report_md = reports[m.group(1)]
+            r["__apply_url"] = extract_apply_url(report_md)
             r["__report_file"] = m.group(1)
+            pdf_path = extract_pdf_path(report_md)
+            if pdf_path:
+                pdf_name = pdf_path.replace("output/", "")
+                r["__pdf"] = pdf_name if pdf_name in pdfs else None
+            else:
+                r["__pdf"] = None
         else:
             r["__apply_url"] = None
             r["__report_file"] = None
+            r["__pdf"] = None
     return {
         "apps": apps,
         "reports": reports,
-        "pdfs": collect_pdfs(),
+        "pdfs": pdfs,
         "pipeline_count": collect_pipeline_count(),
         "root": str(ROOT),
     }

@@ -281,6 +281,9 @@ function render() {
       tr.appendChild(td(r.Role || ""));
       tr.appendChild(td(`<span class="score ${scoreClass(r.Score)}">${r.Score || ""}</span>`));
 
+      // override PDF column to show download link if known
+      r.__pdfLink = r.__pdf ? `<a href="/output/${r.__pdf}" target="_blank" title="${r.__pdf}" style="color: var(--accent); text-decoration: none;">📄 Open</a>` : (r.PDF || "");
+
       const stTd = document.createElement("td");
       const sel = document.createElement("select");
       sel.className = `status-select s-${status}`;
@@ -294,7 +297,7 @@ function render() {
       stTd.appendChild(sel);
       tr.appendChild(stTd);
 
-      tr.appendChild(td(r.PDF || ""));
+      tr.appendChild(td(r.__pdfLink));
 
       const notesTd = document.createElement("td");
       const ta = document.createElement("textarea");
