@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Career Ops Dashboard — Aaron</title>
+<style>
+  :root {
+    --bg: #0f1419;
+    --card: #1a1f2e;
+    --border: #2a3142;
+    --text: #e8eaed;
+    --muted: #a0a8b8;
+    --accent: #4a9eff;
+    --green: #4ade80;
+    --yellow: #facc15;
+    --red: #f87171;
+    --purple: #c084fc;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, "Segoe UI", system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.5; }
+  header { background: var(--card); border-bottom: 1px solid var(--border); padding: 16px 24px; display: flex; align-items: center; gap: 24px; }
+  header h1 { font-size: 18px; font-weight: 700; color: var(--accent); }
+  .stats { display: flex; gap: 16px; font-size: 13px; color: var(--muted); }
+  .stats b { color: var(--text); font-weight: 600; }
+  main { padding: 24px; max-width: 1500px; margin: 0 auto; }
+  .controls { display: flex; gap: 12px; margin-bottom: 16px; align-items: center; flex-wrap: wrap; }
+  .controls input, .controls select, .controls button { background: var(--card); color: var(--text); border: 1px solid var(--border); padding: 8px 12px; border-radius: 6px; font-size: 13px; font-family: inherit; }
+  .controls input { width: 240px; }
+  .controls input::placeholder { color: var(--muted); }
+  .controls button { cursor: pointer; }
+  .controls button:hover { background: var(--accent); color: white; }
+  table { width: 100%; border-collapse: collapse; background: var(--card); border-radius: 8px; overflow: hidden; border: 1px solid var(--border); }
+  thead { background: rgba(255, 255, 255, 0.03); }
+  th, td { padding: 10px 14px; text-align: left; font-size: 13px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  th { font-weight: 600; color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; }
+  tbody tr { transition: background 0.1s; }
+  tbody tr:hover { background: rgba(74, 158, 255, 0.05); }
+  tbody tr:last-child td { border-bottom: 0; }
+  .score { font-weight: 600; font-variant-numeric: tabular-nums; }
+  .score-high { color: var(--green); }
+  .score-mid { color: var(--yellow); }
+  .score-low { color: var(--red); }
+  select.status-select { background: var(--card); color: var(--text); border: 1px solid var(--border); padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; cursor: pointer; }
+  select.status-select.s-Evaluated { color: var(--accent); border-color: rgba(74, 158, 255, 0.4); }
+  select.status-select.s-Applied { color: var(--purple); border-color: rgba(192, 132, 252, 0.4); }
+  select.status-select.s-Responded { color: var(--accent); border-color: rgba(74, 158, 255, 0.4); }
+  select.status-select.s-Interview { color: var(--yellow); border-color: rgba(250, 204, 21, 0.4); }
+  select.status-select.s-Offer { color: var(--green); border-color: rgba(74, 222, 128, 0.4); }
+  select.status-select.s-Rejected, select.status-select.s-Discarded, select.status-select.s-SKIP { color: var(--red); border-color: rgba(248, 113, 113, 0.4); }
+  textarea.notes-edit { width: 100%; min-width: 200px; background: transparent; color: var(--text); border: 1px solid transparent; padding: 4px 6px; font-family: inherit; font-size: 12px; resize: vertical; min-height: 24px; border-radius: 3px; }
+  textarea.notes-edit:hover, textarea.notes-edit:focus { border-color: var(--border); background: rgba(0, 0, 0, 0.2); outline: none; }
+  .row-actions { display: flex; gap: 4px; }
+  .btn-icon { background: transparent; color: var(--muted); border: 1px solid var(--border); padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 11px; }
+  .btn-icon:hover { color: var(--text); border-color: var(--accent); }
+  .btn-apply { background: var(--accent); color: white; border: none; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: 600; }
+  .btn-apply:hover { opacity: 0.85; }
+  .saved-indicator { color: var(--green); font-size: 11px; margin-left: 6px; opacity: 0; transition: opacity 0.3s; }
+  .saved-indicator.show { opacity: 1; }
+  .empty { padding: 40px; text-align: center; color: var(--muted); font-size: 14px; }
+  .modal-bg { display: none; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.7); z-index: 100; align-items: flex-start; justify-content: center; padding: 40px 20px; overflow-y: auto; }
+  .modal-bg.show { display: flex; }
+  .modal { background: var(--card); border-radius: 8px; border: 1px solid var(--border); max-width: 1000px; width: 100%; padding: 24px 32px; position: relative; }
+  .modal-close { position: absolute; top: 14px; right: 18px; background: none; border: none; color: var(--muted); font-size: 22px; cursor: pointer; }
+  .modal-close:hover { color: var(--text); }
+  .modal-content { color: var(--text); font-size: 13px; line-height: 1.6; white-space: pre-wrap; font-family: ui-monospace, "SF Mono", monospace; max-height: 78vh; overflow-y: auto; padding-right: 12px; }
+  .pdf-section { margin-top: 24px; background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 20px 24px; }
+  .pdf-section h2 { font-size: 13px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 12px; }
+  .pdf-list { display: flex; flex-direction: column; gap: 6px; }
+  .pdf-list a { color: var(--accent); text-decoration: none; font-size: 13px; font-family: ui-monospace, monospace; }
+  .pdf-list a:hover { text-decoration: underline; }
+  footer { margin-top: 32px; padding: 16px 24px; color: var(--muted); font-size: 12px; text-align: center; border-top: 1px solid var(--border); }
+  footer code { background: var(--card); padding: 2px 6px; border-radius: 3px; font-size: 11px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Career Ops Dashboard <span style="color: var(--muted); font-weight: 400; font-size: 12px;">live · editable</span></h1>
+  <div class="stats">
+    <span><b id="stat-total">0</b> evaluated</span>
+    <span><b id="stat-high">0</b> high-fit (≥4.5)</span>
+    <span><b id="stat-pipeline">0</b> in pipeline</span>
+    <span><b id="stat-applied">0</b> applied</span>
+    <span><b id="stat-interview">0</b> interviewing</span>
+  </div>
+</header>
+
+<main>
+  <div class="controls">
+    <input type="text" id="filter" placeholder="Filter by company / role / notes…">
+    <select id="status-filter">
+      <option value="">All statuses</option>
+      <option value="Evaluated">Evaluated</option>
+      <option value="Applied">Applied</option>
+      <option value="Responded">Responded</option>
+      <option value="Interview">Interview</option>
+      <option value="Offer">Offer</option>
+      <option value="Rejected">Rejected</option>
+      <option value="Discarded">Discarded</option>
+      <option value="SKIP">SKIP</option>
+    </select>
+    <select id="sort">
+      <option value="score-desc">Score ↓</option>
+      <option value="score-asc">Score ↑</option>
+      <option value="date-desc">Date ↓</option>
+      <option value="date-asc">Date ↑</option>
+      <option value="num-asc">Number ↑</option>
+    </select>
+    <button id="refresh-btn">↻ Refresh</button>
+    <span style="color: var(--muted); font-size: 12px; margin-left: auto;">Status / Notes save automatically</span>
+  </div>
+
+  <table id="apps-table">
+    <thead>
+      <tr><th>#</th><th>Date</th><th>Company</th><th>Role</th><th>Score</th><th>Status</th><th>PDF</th><th style="min-width: 220px;">Notes</th><th>Actions</th></tr>
+    </thead>
+    <tbody id="apps-body"></tbody>
+  </table>
+
+  <div class="pdf-section">
+    <h2>Generated PDFs (output/)</h2>
+    <div class="pdf-list" id="pdf-list"></div>
+  </div>
+</main>
+
+<footer>
+  Run <code>python3 dashboard-web/serve.py</code> to start. Status / Notes saves write directly to <code>data/applications.md</code>.
+</footer>
+
+<div class="modal-bg" id="modal-bg">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal()">&times;</button>
+    <div class="modal-content" id="modal-content"></div>
+  </div>
+</div>
+
+<script>
+const STATUSES = ["Evaluated", "Applied", "Responded", "Interview", "Offer", "Rejected", "Discarded", "SKIP"];
+let DATA = { apps: [], reports: {}, pdfs: [], pipeline_count: 0, root: "" };
+
+function scoreClass(score) {
+  const n = parseFloat((score || "").replace(/\/.*$/, ""));
+  if (isNaN(n)) return "";
+  if (n >= 4.5) return "score-high";
+  if (n >= 3.5) return "score-mid";
+  return "score-low";
+}
+
+function showSaved(el) {
+  const ind = document.createElement("span");
+  ind.className = "saved-indicator show";
+  ind.textContent = "✓ saved";
+  el.parentElement.appendChild(ind);
+  setTimeout(() => { ind.classList.remove("show"); setTimeout(() => ind.remove(), 400); }, 1200);
+}
+
+async function updateRow(num, payload, el) {
+  try {
+    const res = await fetch("/api/update", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ num, ...payload }) });
+    const j = await res.json();
+    if (j.ok) { showSaved(el); await refresh(); }
+    else alert("Save failed: " + (j.error || "unknown"));
+  } catch (e) { alert("Save failed: " + e.message); }
+}
+
+const parseScore = r => parseFloat((r.Score || "0").replace(/\/.*$/, ""));
+
+function render() {
+  const filter = document.getElementById("filter").value.toLowerCase();
+  const statusFilter = document.getElementById("status-filter").value;
+  const sort = document.getElementById("sort").value;
+  const tbody = document.getElementById("apps-body");
+  tbody.innerHTML = "";
+
+  let rows = DATA.apps.slice();
+  if (filter) rows = rows.filter(r => Object.entries(r).filter(([k]) => !k.startsWith("__")).some(([_, v]) => v && v.toString().toLowerCase().includes(filter)));
+  if (statusFilter) rows = rows.filter(r => r.Status === statusFilter);
+
+  const parseNum = r => parseInt(r["#"] || 0);
+  rows.sort((a, b) => {
+    switch (sort) {
+      case "score-desc": return parseScore(b) - parseScore(a);
+      case "score-asc": return parseScore(a) - parseScore(b);
+      case "date-desc": return (b.Date || "").localeCompare(a.Date || "");
+      case "date-asc": return (a.Date || "").localeCompare(b.Date || "");
+      case "num-asc": return parseNum(a) - parseNum(b);
+    }
+    return 0;
+  });
+
+  if (rows.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="9" class="empty">No applications match your filters.</td></tr>';
+  } else {
+    for (const r of rows) {
+      const tr = document.createElement("tr");
+      const num = r["#"];
+      const status = r.Status || "Evaluated";
+      const applyUrl = r.__apply_url;
+      const reportFile = r.__report_file;
+
+      const td = (h) => { const c = document.createElement("td"); c.innerHTML = h; return c; };
+      tr.appendChild(td(num));
+      tr.appendChild(td(r.Date || ""));
+      tr.appendChild(td(`<b>${r.Company || ""}</b>`));
+      tr.appendChild(td(r.Role || ""));
+      tr.appendChild(td(`<span class="score ${scoreClass(r.Score)}">${r.Score || ""}</span>`));
+
+      const stTd = document.createElement("td");
+      const sel = document.createElement("select");
+      sel.className = `status-select s-${status}`;
+      for (const s of STATUSES) {
+        const opt = document.createElement("option");
+        opt.value = s; opt.textContent = s;
+        if (s === status) opt.selected = true;
+        sel.appendChild(opt);
+      }
+      sel.onchange = () => { sel.className = `status-select s-${sel.value}`; updateRow(num, { status: sel.value }, sel); };
+      stTd.appendChild(sel);
+      tr.appendChild(stTd);
+
+      tr.appendChild(td(r.PDF || ""));
+
+      const notesTd = document.createElement("td");
+      const ta = document.createElement("textarea");
+      ta.className = "notes-edit";
+      ta.value = r.Notes || "";
+      ta.rows = 1;
+      let saveTimer;
+      ta.oninput = () => { clearTimeout(saveTimer); saveTimer = setTimeout(() => updateRow(num, { notes: ta.value }, ta), 800); };
+      ta.onblur = () => { clearTimeout(saveTimer); if (ta.value !== (r.Notes || "")) updateRow(num, { notes: ta.value }, ta); };
+      notesTd.appendChild(ta);
+      tr.appendChild(notesTd);
+
+      const actTd = document.createElement("td");
+      const actDiv = document.createElement("div");
+      actDiv.className = "row-actions";
+      if (reportFile) {
+        const b = document.createElement("button");
+        b.className = "btn-icon"; b.textContent = "📄 Report";
+        b.onclick = () => openModal(DATA.reports[reportFile]);
+        actDiv.appendChild(b);
+      }
+      if (applyUrl) {
+        const b = document.createElement("button");
+        b.className = "btn-apply"; b.textContent = "Apply"; b.title = applyUrl;
+        b.onclick = () => {
+          window.open(applyUrl, "_blank");
+          if (status === "Evaluated") {
+            if (confirm("Open the apply page. Mark as Applied now?")) {
+              sel.value = "Applied"; sel.className = "status-select s-Applied";
+              updateRow(num, { status: "Applied" }, sel);
+            }
+          }
+        };
+        actDiv.appendChild(b);
+      }
+      actTd.appendChild(actDiv);
+      tr.appendChild(actTd);
+      tbody.appendChild(tr);
+    }
+  }
+
+  document.getElementById("stat-total").textContent = DATA.apps.length;
+  document.getElementById("stat-high").textContent = DATA.apps.filter(r => parseScore(r) >= 4.5).length;
+  document.getElementById("stat-pipeline").textContent = DATA.pipeline_count;
+  document.getElementById("stat-applied").textContent = DATA.apps.filter(r => r.Status === "Applied").length;
+  document.getElementById("stat-interview").textContent = DATA.apps.filter(r => r.Status === "Interview").length;
+}
+
+async function refresh() {
+  try { const res = await fetch("/api/data"); DATA = await res.json(); render(); renderPdfs(); }
+  catch (e) { console.error(e); }
+}
+
+function renderPdfs() {
+  const list = document.getElementById("pdf-list");
+  list.innerHTML = "";
+  if (DATA.pdfs.length === 0) { list.innerHTML = '<span style="color: var(--muted); font-size: 12px;">No PDFs generated yet.</span>'; return; }
+  for (const pdf of DATA.pdfs) {
+    const a = document.createElement("a");
+    a.href = `/output/${pdf}`; a.target = "_blank"; a.textContent = pdf;
+    list.appendChild(a);
+  }
+}
+
+function openModal(c) { document.getElementById("modal-content").textContent = c; document.getElementById("modal-bg").classList.add("show"); }
+function closeModal() { document.getElementById("modal-bg").classList.remove("show"); }
+
+document.getElementById("modal-bg").addEventListener("click", (e) => { if (e.target.id === "modal-bg") closeModal(); });
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeModal(); });
+document.getElementById("filter").addEventListener("input", render);
+document.getElementById("status-filter").addEventListener("change", render);
+document.getElementById("sort").addEventListener("change", render);
+document.getElementById("refresh-btn").addEventListener("click", refresh);
+
+refresh();
+setInterval(refresh, 30000);
+</script>
+</body>
+</html>
