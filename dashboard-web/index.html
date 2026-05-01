@@ -332,6 +332,37 @@ function render() {
           }
         };
         actDiv.appendChild(b);
+
+        if (r.__pdf) {
+          const pf = document.createElement("button");
+          pf.className = "btn-icon";
+          pf.textContent = "🚀 Pre-fill";
+          pf.title = "Open browser, auto-fill standard fields, upload resume — review and submit yourself";
+          pf.onclick = async (e) => {
+            e.stopPropagation();
+            pf.textContent = "⏳ Opening…";
+            pf.disabled = true;
+            try {
+              const res = await fetch("/api/prefill", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ num }),
+              });
+              const j = await res.json();
+              if (j.ok) {
+                pf.textContent = "✓ Browser opened";
+                setTimeout(() => { pf.textContent = "🚀 Pre-fill"; pf.disabled = false; }, 4000);
+              } else {
+                alert("Pre-fill failed: " + (j.error || "unknown"));
+                pf.textContent = "🚀 Pre-fill"; pf.disabled = false;
+              }
+            } catch (err) {
+              alert("Pre-fill error: " + err.message);
+              pf.textContent = "🚀 Pre-fill"; pf.disabled = false;
+            }
+          };
+          actDiv.appendChild(pf);
+        }
       }
       actTd.appendChild(actDiv);
       tr.appendChild(actTd);

@@ -5,6 +5,7 @@ Career Ops Web Dashboard — editable version.
 Run:  python3 dashboard-web/serve.py
 Then open: http://localhost:8765
 """
+from __future__ import annotations
 import http.server
 import json
 import os
@@ -169,6 +170,34 @@ def update_app(num: str, status: str | None = None, notes: str | None = None) ->
     return {"ok": True}
 
 
+def trigger_prefill(num: str) -> dict:
+    """Spawn a Playwright auto-fill session for the row #num."""
+    import subprocess
+    data = get_data()
+    row = next((r for r in data["apps"] if str(r.get("#")) == num), None)
+    if not row:
+        return {"ok": False, "error": f"row #{num} not found"}
+    apply_url = row.get("__apply_url")
+    pdf = row.get("__pdf")
+    if not apply_url or not pdf:
+        return {"ok": False, "error": f"missing apply URL or PDF for #{num}"}
+    pdf_path = OUTPUT_DIR / pdf
+    helper = Path(__file__).resolve().parent / "apply-helper.mjs"
+    cmd = ["node", str(helper), apply_url, str(pdf_path)]
+    try:
+        # Spawn detached so it doesn't block the server
+        subprocess.Popen(
+            cmd,
+            cwd=str(ROOT),
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            start_new_session=True,
+        )
+        return {"ok": True, "url": apply_url, "pdf": pdf}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
+
 class Handler(http.server.SimpleHTTPRequestHandler):
     def log_message(self, fmt, *args):
         sys.stdout.write(f"  → {fmt % args}\n")
@@ -216,6 +245,12 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             self._send_json(res, status=200 if res.get("ok") else 400)
         elif path == "/api/refresh":
             self._send_json({"ok": True, "data": get_data()})
+        elif path == "/api/prefill":
+            length = int(self.headers.get("Content-Length", "0"))
+            data = json.loads(self.rfile.read(length).decode("utf-8")) if length else {}
+            num = str(data.get("num", ""))
+            res = trigger_prefill(num)
+            self._send_json(res, status=200 if res.get("ok") else 400)
         else:
             self._send(404, b"not found", "text/plain")
 
