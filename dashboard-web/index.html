@@ -29,6 +29,43 @@
   .controls input::placeholder { color: var(--muted); }
   .controls button { cursor: pointer; }
   .controls button:hover { background: var(--accent); color: white; }
+  /* Applied checklist */
+  .applied-cell { text-align: center; }
+  .applied-checkbox {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    border: 1.5px solid var(--border);
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: 700;
+    transition: all 0.15s;
+  }
+  .applied-checkbox.checked {
+    background: rgba(74, 222, 128, 0.15);
+    border-color: var(--green);
+    color: var(--green);
+  }
+  .applied-checkbox.locked {
+    background: rgba(192, 132, 252, 0.15);
+    border-color: var(--purple);
+    color: var(--purple);
+    cursor: not-allowed;
+  }
+  .applied-checkbox.rejected {
+    background: rgba(248, 113, 113, 0.15);
+    border-color: var(--red);
+    color: var(--red);
+  }
+  .applied-checkbox:not(.checked):not(.locked):not(.rejected):hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
   table { width: 100%; border-collapse: collapse; background: var(--card); border-radius: 8px; overflow: hidden; border: 1px solid var(--border); }
   thead { background: rgba(255, 255, 255, 0.03); }
   th, td { padding: 10px 14px; text-align: left; font-size: 13px; border-bottom: 1px solid var(--border); vertical-align: middle; }
@@ -81,6 +118,7 @@
     <span><b id="stat-pipeline">0</b> in pipeline</span>
     <span><b id="stat-applied">0</b> applied</span>
     <span><b id="stat-interview">0</b> interviewing</span>
+    <span style="margin-left: auto; color: var(--green);" id="stat-progress">0 of 0 applied</span>
   </div>
 </header>
 
@@ -111,7 +149,7 @@
 
   <table id="apps-table">
     <thead>
-      <tr><th>#</th><th>Date</th><th>Company</th><th>Role</th><th>Score</th><th>Status</th><th>PDF</th><th style="min-width: 220px;">Notes</th><th>Actions</th></tr>
+      <tr><th>#</th><th style="text-align: center;">Applied?</th><th>Date</th><th>Company</th><th>Role</th><th>Score</th><th>Status</th><th>PDF</th><th style="min-width: 220px;">Notes</th><th>Actions</th></tr>
     </thead>
     <tbody id="apps-body"></tbody>
   </table>
@@ -188,7 +226,7 @@ function render() {
   });
 
   if (rows.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="9" class="empty">No applications match your filters.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="10" class="empty">No applications match your filters.</td></tr>';
   } else {
     for (const r of rows) {
       const tr = document.createElement("tr");
@@ -199,6 +237,45 @@ function render() {
 
       const td = (h) => { const c = document.createElement("td"); c.innerHTML = h; return c; };
       tr.appendChild(td(num));
+
+      // Applied checklist
+      const appliedTd = document.createElement("td");
+      appliedTd.className = "applied-cell";
+      const cb = document.createElement("button");
+      cb.className = "applied-checkbox";
+      const POST_APPLIED = ["Applied", "Responded", "Interview", "Offer"];
+      const NEGATIVE = ["Rejected", "Discarded", "SKIP"];
+      if (POST_APPLIED.includes(status)) {
+        cb.classList.add(status === "Applied" ? "checked" : "locked");
+        cb.textContent = status === "Applied" ? "✓" : (status === "Interview" ? "🎯" : (status === "Offer" ? "🏆" : "✓"));
+        cb.title = `${status} — click to revert to Evaluated`;
+        cb.onclick = () => {
+          if (confirm(`Revert ${r.Company} from ${status} back to Evaluated?`)) {
+            updateRow(num, { status: "Evaluated" }, cb);
+          }
+        };
+      } else if (NEGATIVE.includes(status)) {
+        cb.classList.add("rejected");
+        cb.textContent = "✗";
+        cb.title = `${status} — click to revert to Evaluated`;
+        cb.onclick = () => {
+          if (confirm(`Revert ${r.Company} from ${status} back to Evaluated?`)) {
+            updateRow(num, { status: "Evaluated" }, cb);
+          }
+        };
+      } else {
+        cb.textContent = "☐";
+        cb.title = applyUrl ? "Click to open apply page and mark Applied" : "Click to mark as Applied";
+        cb.onclick = () => {
+          if (applyUrl) window.open(applyUrl, "_blank");
+          if (confirm(`Mark ${r.Company} as Applied?`)) {
+            updateRow(num, { status: "Applied" }, cb);
+          }
+        };
+      }
+      appliedTd.appendChild(cb);
+      tr.appendChild(appliedTd);
+
       tr.appendChild(td(r.Date || ""));
       tr.appendChild(td(`<b>${r.Company || ""}</b>`));
       tr.appendChild(td(r.Role || ""));
@@ -262,8 +339,11 @@ function render() {
   document.getElementById("stat-total").textContent = DATA.apps.length;
   document.getElementById("stat-high").textContent = DATA.apps.filter(r => parseScore(r) >= 4.5).length;
   document.getElementById("stat-pipeline").textContent = DATA.pipeline_count;
-  document.getElementById("stat-applied").textContent = DATA.apps.filter(r => r.Status === "Applied").length;
+  const appliedSet = ["Applied", "Responded", "Interview", "Offer"];
+  const appliedCount = DATA.apps.filter(r => appliedSet.includes(r.Status)).length;
+  document.getElementById("stat-applied").textContent = appliedCount;
   document.getElementById("stat-interview").textContent = DATA.apps.filter(r => r.Status === "Interview").length;
+  document.getElementById("stat-progress").textContent = `${appliedCount} of ${DATA.apps.length} applied`;
 }
 
 async function refresh() {
